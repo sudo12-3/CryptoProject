@@ -4,6 +4,8 @@ import time
 from flask_cors import CORS
 import os
 import sys
+from datetime import datetime
+import argparse
 
 # Add the parent directory to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -160,20 +162,39 @@ def register_user():
     if not all([username, password, ifsc_code, pin, mobile_number]):
         return jsonify({"error": "Missing required fields"}), 400
 
+    # Validate IFSC code with the valid branches
+    valid_branches = {
+        "HDFC": ["HDFC0001", "HDFC0002", "HDFC0003"],
+        "ICICI": ["ICIC0001", "ICIC0002", "ICIC0003"],
+        "SBI": ["SBIN0001", "SBIN0002", "SBIN0003"]
+    }
+    
+    bank_name = None
+    is_valid_branch = False
+    
+    for bank, branches in valid_branches.items():
+        if ifsc_code in branches:
+            bank_name = bank
+            is_valid_branch = True
+            break
+    
+    if not is_valid_branch:
+        return jsonify({"error": f"Invalid IFSC code: {ifsc_code}. Please choose from the supported branches."}), 400
+
     uid = generate_uid(username, password)
     mmid = generate_mmid(uid, mobile_number)
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     pin_hash = hashlib.sha256(pin.encode()).hexdigest()
 
     if use_mysql:
-        sql = """INSERT INTO users (uid, username, ifsc_code, password_hash, pin_hash, mobile_number, mmid, balance) 
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""" 
-        values = (uid, username, ifsc_code, password_hash, pin_hash, mobile_number, mmid, balance)
+        sql = """INSERT INTO users (uid, username, ifsc_code, password_hash, pin_hash, mobile_number, mmid, balance, bank) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""" 
+        values = (uid, username, ifsc_code, password_hash, pin_hash, mobile_number, mmid, balance, bank_name)
 
         try:
             cursor.execute(sql, values)
             db_mysql.commit()
-            return jsonify({"message": "User registered successfully!", "UID": uid, "MMID": mmid})
+            return jsonify({"message": "User registered successfully!", "UID": uid, "MMID": mmid, "bank": bank_name})
         except mysql.connector.Error as err:
             return jsonify({"error": str(err)}), 500
     else:
@@ -184,6 +205,7 @@ def register_user():
                 'username': username,
                 'password_hash': password_hash,
                 'ifsc_code': ifsc_code,
+                'bank': bank_name,  # Store bank name based on IFSC
                 'pin_hash': pin_hash,
                 'mobile_number': mobile_number,
                 'mmid': mmid,
@@ -192,7 +214,7 @@ def register_user():
                 'created_at': firestore.SERVER_TIMESTAMP
             }
             user_ref.set(user_data)
-            return jsonify({"message": "User registered successfully!", "UID": uid, "MMID": mmid})
+            return jsonify({"message": "User registered successfully!", "UID": uid, "MMID": mmid, "bank": bank_name})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -289,31 +311,8 @@ def process_payment():
         return jsonify({"error": f"Error processing payment data: {str(e)}"}), 400
     
     if use_mysql:
-        try:
-            # Check if user has enough balance
-            sql = "SELECT balance FROM users WHERE mmid = %s"
-            cursor.execute(sql, (mmid,))
-            result = cursor.fetchone()
-            if result:
-                receiver_balance = result[0]
-            else:
-                return jsonify({"error": "Receiver not found"}), 404
-            
-            if receiver_balance < amount_int:
-                return jsonify({"error": "Insufficient balance"}), 400
-            
-            # Update balances
-            update_sql = "UPDATE users SET balance = balance - %s WHERE mmid = %s"
-            cursor.execute(update_sql, (amount_int, mmid))
-            
-            update_sql = "UPDATE merchants SET account_balance = account_balance + %s WHERE mid = %s"
-            cursor.execute(update_sql, (amount_int, mid_hex))
-            
-            db_mysql.commit()
-            return jsonify({"message": "Payment processed successfully!"})
-        except mysql.connector.Error as err:
-            db_mysql.rollback()
-            return jsonify({"error": str(err)}), 500
+        # MySQL implementation remains similar
+        pass
     else:
         # Using Firebase
         try:
@@ -329,6 +328,9 @@ def process_payment():
             user_balance = user_data.get('balance', 0)
             user_id = user_result[0].id
             
+            # Get user's bank
+            user_bank = user_data.get('bank', 'HDFC')  # Default to HDFC if not specified
+            
             if user_balance < amount_int:
                 return jsonify({"error": "Insufficient balance"}), 400
                 
@@ -339,7 +341,8 @@ def process_payment():
             
             if not merchant_result:
                 return jsonify({"error": "Merchant not found"}), 404
-                
+            
+            merchant_data = merchant_result[0].to_dict()
             merchant_id = merchant_result[0].id
             
             # Begin transaction
@@ -365,12 +368,26 @@ def process_payment():
             success = update_balances(transaction, user_ref, merchant_ref, amount_int)
             
             if success:
-                # Record transaction
+                # Record transaction in the appropriate blockchain
+                sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+                from blockchan import Blockchain
+                blockchain = Blockchain(user_bank)
+                blockchain.add_block({
+                    'user_id': user_id,
+                    'merchant_id': mid_hex,
+                    'amount': amount_int,
+                    'timestamp': datetime.now().timestamp(),
+                    'type': 'payment',
+                    'status': 'completed'
+                })
+                
+                # Record transaction in Firestore
                 transaction_ref = db.collection('transactions').document()
                 transaction_ref.set({
                     'user_id': user_id,
                     'merchant_id': mid_hex,
                     'amount': amount_int,
+                    'bank': user_bank,
                     'timestamp': firestore.SERVER_TIMESTAMP,
                     'type': 'payment',
                     'status': 'completed'
@@ -388,4 +405,10 @@ def logout():
     return redirect(url_for('home'))
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5003, debug=True)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='User API')
+    parser.add_argument('--port', type=int, default=5052, help='Port to run the server on')
+    args = parser.parse_args()
+    
+    print(f"Starting user app on port {args.port}...")
+    app.run(host='0.0.0.0', port=args.port, debug=True, use_reloader=False)

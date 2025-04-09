@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Bank Dashboard | Centralized UPI Gateway</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -9,127 +11,187 @@
             padding: 20px;
             background-color: #f5f5f5;
         }
-        h1 {
-            color: #1a237e;
-        }
         .container {
-            background-color: white;
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: #fff;
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #0066cc;
+        }
+        .bank-tabs {
+            display: flex;
             margin-bottom: 20px;
+            background-color: #eee;
+            border-radius: 5px;
+            overflow: hidden;
         }
-        .bank-selector {
-            margin-bottom: 20px;
-        }
-        select {
-            padding: 8px;
-            width: 200px;
-        }
-        button {
-            padding: 8px 16px;
-            background-color: #1a237e;
-            color: white;
-            border: none;
-            border-radius: 4px;
+        .bank-tab {
+            flex: 1;
+            text-align: center;
+            padding: 15px;
             cursor: pointer;
+            transition: background-color 0.3s;
         }
-        button:hover {
-            background-color: #0e1859;
+        .bank-tab.active {
+            background-color: #0066cc;
+            color: white;
         }
         table {
             width: 100%;
             border-collapse: collapse;
+            margin-top: 20px;
         }
         th, td {
-            padding: 12px;
+            padding: 12px 15px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #f8f8f8;
+            font-weight: bold;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #888;
+        }
+        .transaction-amount {
+            font-weight: bold;
+        }
+        .transaction-timestamp {
+            color: #666;
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body>
-    <h1>Bank Dashboard - Centralized UPI Gateway</h1>
-    
     <div class="container">
-        <h2>Transaction History</h2>
-        <div class="bank-selector">
-            <label for="bank">Select Bank: </label>
-            <select id="bank">
-                <option value="HDFC">HDFC Bank</option>
-                <option value="ICICI">ICICI Bank</option>
-                <option value="SBI">State Bank of India</option>
-            </select>
-            <button onclick="loadTransactions()">Load Transactions</button>
+        <h1>Bank Administration Dashboard</h1>
+        
+        <div class="bank-tabs">
+            <div class="bank-tab active" onclick="showBankTransactions('HDFC')">HDFC Bank</div>
+            <div class="bank-tab" onclick="showBankTransactions('ICICI')">ICICI Bank</div>
+            <div class="bank-tab" onclick="showBankTransactions('SBI')">SBI Bank</div>
         </div>
         
-        <div id="transactions">
-            <table id="transactionTable">
+        <div id="transactions-container">
+            <h2 id="bank-title">HDFC Bank Transactions</h2>
+            <table id="transactions-table">
                 <thead>
                     <tr>
-                        <th>Transaction ID</th>
-                        <th>Sender</th>
-                        <th>Receiver</th>
-                        <th>Amount</th>
                         <th>Timestamp</th>
+                        <th>User ID</th>
+                        <th>Merchant ID</th>
+                        <th>Amount</th>
+                        <th>Hash</th>
                     </tr>
                 </thead>
-                <tbody id="transactionBody">
+                <tbody id="transactions-body">
                     <!-- Transactions will be loaded here -->
+                    <tr>
+                        <td colspan="5" class="no-data">Loading transactions...</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
-    
-    <div class="container">
-        <h2>Blockchain Status</h2>
-        <div id="blockchainInfo">
-            <p>Total blocks: <span id="blockCount">0</span></p>
-            <p>Last block hash: <span id="lastHash">-</span></p>
-        </div>
-    </div>
-    
+
     <script>
-        function loadTransactions() {
-            const bank = document.getElementById('bank').value;
+        // Set the current active bank and load its transactions
+        let currentBank = 'HDFC';
+        
+        // Function to show a bank's transactions when tab is clicked
+        function showBankTransactions(bank) {
+            // Update active tab
+            document.querySelectorAll('.bank-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+            
+            // Update bank title
+            document.getElementById('bank-title').innerText = bank + ' Bank Transactions';
+            
+            // Set current bank and load its transactions
+            currentBank = bank;
+            loadTransactions(bank);
+        }
+        
+        // Function to properly format timestamps
+        function formatTimestamp(timestamp) {
+            // Check if timestamp is a number
+            if (typeof timestamp === 'number') {
+                return new Date(timestamp * 1000).toLocaleString();
+            }
+            
+            // If it's already a string, try to parse it
+            try {
+                return new Date(timestamp).toLocaleString();
+            } catch (e) {
+                console.error("Invalid timestamp format:", timestamp);
+                return "Invalid date";
+            }
+        }
+
+        // Function to load transactions for a specific bank
+        function loadTransactions(bank) {
+            // Show loading indicator
+            document.getElementById('transactions-body').innerHTML = '<tr><td colspan="5" class="no-data">Loading transactions...</td></tr>';
+            
+            // Fetch transactions from backend
             fetch(`/transactions?bank=${bank}`)
                 .then(response => response.json())
                 .then(data => {
-                    const tableBody = document.getElementById('transactionBody');
-                    tableBody.innerHTML = '';
+                    console.log("Received data:", data); // Debug logging
+                    const transactions = data.transactions || [];
+                    const tableBody = document.getElementById('transactions-body');
                     
-                    // Update blockchain info
-                    document.getElementById('blockCount').textContent = data.transactions.length;
-                    if (data.transactions.length > 0) {
-                        document.getElementById('lastHash').textContent = 
-                            data.transactions[data.transactions.length - 1].hash.substring(0, 16) + '...';
+                    if (transactions.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="5" class="no-data">No transactions found for this bank.</td></tr>';
+                        return;
                     }
                     
-                    // Display transactions
-                    data.transactions.forEach(block => {
-                        if (block.data) {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${block.index}</td>
-                                <td>${block.data.user_id || '-'}</td>
-                                <td>${block.data.merchant_id || '-'}</td>
-                                <td>₹${block.data.amount || 0}</td>
-                                <td>${new Date(block.data.timestamp * 1000).toLocaleString()}</td>
-                            `;
-                            tableBody.appendChild(row);
-                        }
+                    // Clear table
+                    tableBody.innerHTML = '';
+                    
+                    // Add transactions to table
+                    transactions.forEach(transaction => {
+                        const row = document.createElement('tr');
+                        
+                        row.innerHTML = `
+                            <td class="transaction-timestamp">${formatTimestamp(transaction.data.timestamp)}</td>
+                            <td>${transaction.data.user_id}</td>
+                            <td>${transaction.data.merchant_id}</td>
+                            <td class="transaction-amount">₹${typeof transaction.data.amount === 'number' ? transaction.data.amount.toFixed(2) : '0.00'}</td>
+                            <td>${transaction.hash ? transaction.hash.substring(0, 10) + '...' : 'N/A'}</td>
+                        `;
+                        
+                        tableBody.appendChild(row);
                     });
                 })
                 .catch(error => {
-                    console.error('Error loading transactions:', error);
+                    console.error('Error fetching transactions:', error);
+                    document.getElementById('transactions-body').innerHTML = 
+                        '<tr><td colspan="5" class="no-data">Error loading transactions. Please try again.</td></tr>';
                 });
         }
         
-        // Load transactions when page loads
-        window.onload = loadTransactions;
+        // Load transactions for the default bank when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTransactions(currentBank);
+        });
+        
+        // Refresh transactions every 30 seconds
+        setInterval(() => {
+            loadTransactions(currentBank);
+        }, 30000);
     </script>
 </body>
 </html>

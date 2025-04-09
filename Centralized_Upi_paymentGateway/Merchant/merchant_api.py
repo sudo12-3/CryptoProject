@@ -7,6 +7,7 @@ from flask_cors import CORS
 from io import BytesIO
 import os
 import sys
+import argparse
 
 # Add the parent directory to path to allow imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -257,6 +258,25 @@ def register_merchant():
     if not all([name, password, balance, ifsc_code]):
         return jsonify({"error": "Missing data"}), 400
 
+    # Check if the IFSC code is valid
+    valid_branches = {
+        "HDFC": ["HDFC0001", "HDFC0002", "HDFC0003"],
+        "ICICI": ["ICIC0001", "ICIC0002", "ICIC0003"],
+        "SBI": ["SBIN0001", "SBIN0002", "SBIN0003"]
+    }
+    
+    bank_name = None
+    is_valid_branch = False
+    
+    for bank, branches in valid_branches.items():
+        if ifsc_code in branches:
+            bank_name = bank
+            is_valid_branch = True
+            break
+    
+    if not is_valid_branch:
+        return jsonify({"error": f"Invalid IFSC code: {ifsc_code}. Please choose from the supported branches."}), 400
+
     mid = generate_mid(name, password)
     password_hash = hashlib.sha256(password.encode()).hexdigest()
 
@@ -268,12 +288,13 @@ def register_merchant():
             'password_hash': password_hash,
             'account_balance': float(balance),
             'ifsc_code': ifsc_code,
+            'bank': bank_name,  # Store bank name based on IFSC
             'mid': mid,
             'created_at': firestore.SERVER_TIMESTAMP
         }
         
         merchant_ref.set(merchant_data)
-        return jsonify({"message": f"Merchant '{name}' registered successfully!", "MID": mid})
+        return jsonify({"message": f"Merchant '{name}' registered successfully!", "MID": mid, "bank": bank_name})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -312,4 +333,10 @@ def show_transactions():
     return jsonify({"transactions": transactions})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Merchant API')
+    parser.add_argument('--port', type=int, default=5051, help='Port to run the server on')
+    args = parser.parse_args()
+    
+    print(f"Starting merchant app on port {args.port}...")
+    app.run(host='0.0.0.0', port=args.port, debug=True, use_reloader=False)

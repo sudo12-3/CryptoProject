@@ -1,5 +1,6 @@
 import hashlib
 import time
+from datetime import datetime
 from firebase_config import db
 from firebase_admin import firestore
 
@@ -139,3 +140,40 @@ class Blockchain:
             previous_hash = block.hash
             
         return True
+    
+    def add_block(self, data):
+        """Add a new block to the blockchain with given transaction data"""
+        # Get the latest block for previous hash
+        last_block_ref = db.collection('blocks').where('bank_id', '==', self.bank_id).order_by('timestamp', direction=firestore.Query.DESCENDING).limit(1).get()
+        
+        # Default previous hash (for genesis block)
+        previous_hash = "0"
+        
+        # If there's a previous block, get its hash
+        for doc in last_block_ref:
+            previous_hash = doc.to_dict().get('hash', '0')
+            break
+        
+        # Create timestamp
+        timestamp = datetime.now().timestamp()
+        
+        # Prepare block data
+        block_data = {
+            'uid': data.get('uid', 'GENESIS'),
+            'mid': data.get('mid', 'GENESIS'),
+            'amount': data.get('amount', 0),
+            'timestamp': timestamp,
+            'previous_hash': previous_hash,
+            'bank_id': self.bank_id
+        }
+        
+        # Calculate hash for this block
+        block_data_string = f"{block_data['uid']}{block_data['mid']}{block_data['amount']}{block_data['timestamp']}{block_data['previous_hash']}{block_data['bank_id']}"
+        block_data['hash'] = hashlib.sha256(block_data_string.encode()).hexdigest()
+        
+        # Save block to Firestore
+        db.collection('blocks').add(block_data)
+        
+        print(f"New block added to {self.bank_id} blockchain with hash: {block_data['hash'][:10]}...")
+        
+        return block_data

@@ -18,17 +18,27 @@ CORS(app)
 app.secret_key = "centralized_upi_main_app"
 app.template_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 
+# Define new ports for each service
+MAIN_PORT = 5050
+MERCHANT_PORT = 5051
+USER_PORT = 5052
+BANK_PORT = 5053
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/merchant')
 def merchant_redirect():
-    return redirect('http://127.0.0.1:5001/')
+    return redirect(f'http://127.0.0.1:{MERCHANT_PORT}/')
 
 @app.route('/user')
 def user_redirect():
-    return redirect('http://127.0.0.1:5003/')
+    return redirect(f'http://127.0.0.1:{USER_PORT}/')
+
+@app.route('/bank')
+def bank_redirect():
+    return redirect(f'http://127.0.0.1:{BANK_PORT}/')
 
 if __name__ == '__main__':
     # Initialize blockchains for each bank
@@ -42,25 +52,19 @@ if __name__ == '__main__':
     import threading
     
     def run_merchant_app():
-        try:
-            subprocess.run([sys.executable, 'Merchant/merchant_api.py'], 
-                          cwd=os.path.dirname(os.path.abspath(__file__)))
-        except Exception as e:
-            print(f"Error running merchant app: {e}")
-    
+        print(f"Starting merchant app on port {MERCHANT_PORT}...")
+        subprocess.Popen([sys.executable, 'Merchant/merchant_api.py', '--port', str(MERCHANT_PORT)], 
+                       cwd=os.path.dirname(os.path.abspath(__file__)))
+
     def run_user_app():
-        try:
-            subprocess.run([sys.executable, 'User/user_api.py'], 
-                          cwd=os.path.dirname(os.path.abspath(__file__)))
-        except Exception as e:
-            print(f"Error running user app: {e}")
-    
+        print(f"Starting user app on port {USER_PORT}...")
+        subprocess.Popen([sys.executable, 'User/user_api.py', '--port', str(USER_PORT)], 
+                       cwd=os.path.dirname(os.path.abspath(__file__)))
+
     def run_bank_app():
-        try:
-            subprocess.run([sys.executable, 'Bank/bank_api.py'], 
-                          cwd=os.path.dirname(os.path.abspath(__file__)))
-        except Exception as e:
-            print(f"Error running bank app: {e}")
+        print(f"Starting bank app on port {BANK_PORT}...")
+        subprocess.Popen([sys.executable, 'Bank/bank_api.py', '--port', str(BANK_PORT)], 
+                       cwd=os.path.dirname(os.path.abspath(__file__)))
     
     # Start the apps in separate threads
     merchant_thread = threading.Thread(target=run_merchant_app)
@@ -75,10 +79,7 @@ if __name__ == '__main__':
     user_thread.start()
     bank_thread.start()
     
-    print("Starting merchant app on port 5001...")
-    print("Starting user app on port 5003...")
-    print("Starting bank app on port 5008...")
-    print("Starting main app on port 5000...")
+    print(f"Starting main app on port {MAIN_PORT}...")
     
-    # Run the main app
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Run the main app - DISABLE use_reloader for stability
+    app.run(host='0.0.0.0', port=MAIN_PORT, debug=True, use_reloader=False)

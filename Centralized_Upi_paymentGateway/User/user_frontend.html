@@ -25,7 +25,25 @@
         <h2>Register</h2>
         <input type="text" id="reg_name" placeholder="Username" required>
         <input type="password" id="reg_password" placeholder="Password" required>
-        <input type="text" id="reg_ifsc" placeholder="IFSC Code" required>
+        <label for="reg_ifsc">IFSC Code:</label>
+        <select id="reg_ifsc" name="ifsc_code" required>
+            <option value="">-- Select Branch --</option>
+            <optgroup label="HDFC Bank">
+                <option value="HDFC0001">HDFC0001</option>
+                <option value="HDFC0002">HDFC0002</option>
+                <option value="HDFC0003">HDFC0003</option>
+            </optgroup>
+            <optgroup label="ICICI Bank">
+                <option value="ICIC0001">ICIC0001</option>
+                <option value="ICIC0002">ICIC0002</option>
+                <option value="ICIC0003">ICIC0003</option>
+            </optgroup>
+            <optgroup label="State Bank of India">
+                <option value="SBIN0001">SBIN0001</option>
+                <option value="SBIN0002">SBIN0002</option>
+                <option value="SBIN0003">SBIN0003</option>
+            </optgroup>
+        </select>
         <input type="password" id="reg_pin" placeholder="4-digit PIN" required>
         <input type="text" id="reg_mobile" placeholder="Mobile Number" required>
         <input type="number" id="reg_balance" placeholder="Initial Balance" required> <!-- Added Balance Field -->
@@ -61,7 +79,7 @@
 
             console.log("Sending data to backend:", data); // Debugging - Check in Console
 
-            fetch("http://127.0.0.1:5003/register_user", { 
+            fetch("http://127.0.0.1:5052/register_user", { 
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
@@ -85,7 +103,7 @@
                 password: document.getElementById("login_password").value
             };
 
-            fetch("http://127.0.0.1:5003/user_login", {  
+            fetch("http://127.0.0.1:5052/user_login", {  
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(data)
@@ -95,13 +113,36 @@
                 if (result.success) {
                     localStorage.setItem("userUID", result.uid);
                     console.log("Login successful, redirecting...");
-                    window.location.href = "http://127.0.0.1:5003/homepage";  
+                    window.location.href = "http://127.0.0.1:5052/homepage";  
                 } else {
                     document.getElementById("loginMessage").innerText = result.error;
                 }
             })
             .catch(error => console.error("Error:", error));
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get reference to the registration form
+            const registerForm = document.getElementById('register-form');
+            
+            if (registerForm) {
+                registerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Get IFSC code from dropdown
+                    const ifsc_code = document.getElementById('reg_ifsc').value;
+                    
+                    // Validate IFSC selection
+                    if (!ifsc_code) {
+                        alert('Please select a branch (IFSC code)');
+                        return;
+                    }
+                    
+                    // Continue with form submission...
+                    // Rest of your existing registration code
+                });
+            }
+        });
     </script>
 
 </body>
