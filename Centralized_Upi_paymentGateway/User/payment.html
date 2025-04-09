@@ -3,112 +3,315 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment Form</title>
+    <title>UPI Payment Gateway - Make Payment</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
         body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            background-color: #f4f4f4;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px 0;
         }
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            width: 300px;
-            text-align: center;
-        }
-        .input-field {
-            width: 100%;
-            padding: 8px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-        .button {
-            width: 100%;
-            padding: 10px;
-            background: green;
-            color: white;
+        
+        .payment-card {
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            background: white;
         }
-        .button:hover {
-            background: darkgreen;
+        
+        .payment-header {
+            background-color: var(--primary-color);
+            color: white;
+            text-align: center;
+            padding: 25px;
         }
-        .message {
-            margin-top: 10px;
-            font-weight: bold;
+        
+        .payment-body {
+            padding: 30px;
         }
-        .error {
-            color: red;
+        
+        .payment-footer {
+            background-color: #f8f9fa;
+            padding: 20px 30px;
+            text-align: center;
+            border-top: 1px solid #edf2f9;
         }
-        .success {
-            color: green;
+        
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #495057;
+        }
+        
+        .form-control {
+            border-radius: 8px;
+            padding: 12px 15px;
+            border: 1px solid #dce1e8;
+            transition: all 0.3s;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.25);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .btn-outline-secondary {
+            color: #6c757d;
+            background-color: transparent;
+            border: 1px solid #6c757d;
+            border-radius: 8px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-outline-secondary:hover {
+            background-color: #f8f9fa;
+            color: #5a6268;
+        }
+        
+        .payment-icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: white;
+        }
+        
+        .alert {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+        
+        .input-group i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6c757d;
+        }
+        
+        .input-group .form-control {
+            padding-left: 45px;
+        }
+        
+        .form-text {
+            color: #6c757d;
+            font-size: 0.875rem;
+            margin-top: 5px;
+        }
+        
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2>Payment Details</h2>
-        <input type="text" id="mmid" class="input-field" placeholder="Enter MMID">
-        <input type="password" id="pin" class="input-field" placeholder="Enter PIN">
-        <input type="number" id="amount" class="input-field" placeholder="Enter Amount">
-        <input type="text" id="vid" class="input-field" placeholder="Enter VID">
-        <button class="button" onclick="confirmPayment()">Confirm Payment</button>
-        <p id="message" class="message"></p>
+    <div class="container">
+        <div class="payment-card">
+            <div class="payment-header">
+                <div class="payment-icon">
+                    <i class="fas fa-paper-plane"></i>
+                </div>
+                <h3>Make Payment</h3>
+                <p class="mb-0">Send money securely</p>
+            </div>
+            
+            <div class="payment-body">
+                <div class="alert alert-danger" id="errorAlert" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+                
+                <div class="alert alert-success" id="successAlert" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <span id="successMessage"></span>
+                </div>
+                
+                <form id="paymentForm">
+                    <div class="mb-3">
+                        <label for="mmid" class="form-label">Your MMID</label>
+                        <div class="input-group">
+                            <i class="fas fa-id-card"></i>
+                            <input type="text" class="form-control" id="mmid" value="{{ mmid }}" readonly>
+                        </div>
+                        <div class="form-text">Your unique payment identifier</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="pin" class="form-label">PIN</label>
+                        <div class="input-group">
+                            <i class="fas fa-key"></i>
+                            <input type="password" class="form-control" id="pin" placeholder="Enter 4-digit PIN" maxlength="4" required>
+                        </div>
+                        <div class="form-text">Your secure 4-digit PIN</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Amount</label>
+                        <div class="input-group">
+                            <i class="fas fa-rupee-sign"></i>
+                            <input type="number" class="form-control" id="amount" placeholder="Enter amount" min="1" step="1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="vid" class="form-label">Merchant ID (VID)</label>
+                        <div class="input-group">
+                            <i class="fas fa-tag"></i>
+                            <input type="text" class="form-control" id="vid" placeholder="Enter merchant VID" required>
+                        </div>
+                        <div class="form-text">Enter the merchant's Virtual ID</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <button type="submit" class="btn btn-primary w-100" id="payButton">
+                            <i class="fas fa-paper-plane me-2"></i> Make Payment
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mb-3">
+                    <div class="form-text text-center">
+                        <i class="fas fa-shield-alt me-1"></i> Your payment is secured with end-to-end encryption
+                    </div>
+                </div>
+            </div>
+            
+            <div class="payment-footer">
+                <a href="/homepage" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
     </div>
-    
+
     <script>
-        function confirmPayment() {
-            let mmid = document.getElementById("mmid").value.trim();
-            let pin = document.getElementById("pin").value.trim();
-            let amount = parseFloat(document.getElementById("amount").value);
-            let vid = document.getElementById("vid").value.trim();
-            let messageBox = document.getElementById("message");
-
-            // Clear previous message
-            messageBox.textContent = "";
-            messageBox.className = "message";
-
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const mmid = document.getElementById('mmid').value;
+            const vid = document.getElementById('vid').value;
+            const amount = document.getElementById('amount').value;
+            const pin = document.getElementById('pin').value;
+            
             // Validation
-            if (!mmid || !pin || isNaN(amount) || !vid) {
-                messageBox.classList.add("error");
-                messageBox.textContent = "Please fill in all fields correctly.";
+            if (!mmid) {
+                showError("Missing MMID information");
                 return;
             }
-
-            fetch("http://localhost:5052/process_payment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ 
-                    receiver_mmid: mmid, 
-                    pin: pin, 
-                    amount: amount, 
-                    vid: vid 
+            
+            if (!vid) {
+                showError("Please enter merchant's VID");
+                return;
+            }
+            
+            if (!amount || amount <= 0) {
+                showError("Please enter a valid amount");
+                return;
+            }
+            
+            if (!pin || pin.length !== 4 || isNaN(pin)) {
+                showError("Please enter a valid 4-digit PIN");
+                return;
+            }
+            
+            // Show loading state
+            const payButton = document.getElementById('payButton');
+            payButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+            payButton.disabled = true;
+            
+            // Send payment data to server
+            fetch('/process_payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    receiver_mmid: mmid,
+                    amount: amount,
+                    pin: pin,
+                    vid: vid
                 })
             })
             .then(response => response.json())
             .then(data => {
+                payButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Make Payment';
+                payButton.disabled = false;
+                
                 if (data.error) {
-                    messageBox.classList.add("error");
-                    messageBox.textContent = "Error: " + data.error;
+                    showError(data.error);
                 } else {
-                    messageBox.classList.add("success");
-                    messageBox.textContent = "Payment successful!";
+                    document.getElementById('successMessage').textContent = data.message;
+                    document.getElementById('successAlert').style.display = 'block';
+                    document.getElementById('errorAlert').style.display = 'none';
+                    
+                    // Reset form (except MMID which should remain)
+                    document.getElementById('pin').value = '';
+                    document.getElementById('amount').value = '';
+                    document.getElementById('vid').value = '';
+                    
+                    // Redirect to homepage after success
+                    setTimeout(() => {
+                        window.location.href = '/homepage';
+                    }, 2000);
                 }
             })
             .catch(error => {
-                messageBox.classList.add("error");
-                messageBox.textContent = "Failed to process payment. Please try again.";
-                console.error("Error:", error);
+                payButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Make Payment';
+                payButton.disabled = false;
+                showError("An error occurred. Please try again.");
+                console.error('Error:', error);
             });
+        });
+        
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorAlert').style.display = 'block';
+            document.getElementById('successAlert').style.display = 'none';
+            
+            setTimeout(() => {
+                document.getElementById('errorAlert').style.display = 'none';
+            }, 4000);
         }
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

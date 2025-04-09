@@ -1,102 +1,191 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merchant Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #38b000;
+            --secondary-color: #008000;
+            --accent-color: #70e000;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
+            padding: 20px;
         }
 
         .container {
             background: white;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
             text-align: center;
-            width: 400px;
+            width: 450px;
+            max-width: 100%;
         }
 
         h1 {
-            color: #333;
-            margin-bottom: 10px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            font-weight: 600;
         }
 
         #vmid {
-            font-size: 14px;
+            font-size: 15px;
             color: #555;
             margin-bottom: 20px;
+            padding: 8px 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            display: inline-block;
         }
 
         .button {
             display: block;
             width: 100%;
-            padding: 12px;
-            margin: 10px 0;
+            padding: 14px;
+            margin: 12px 0;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 16px;
             cursor: pointer;
-            transition: 0.3s;
+            transition: all 0.3s;
+            font-weight: 500;
         }
 
         .button:hover {
-            opacity: 0.8;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
-        .balance-btn { background-color: #007bff; color: white; }
-        .transactions-btn { background-color: #28a745; color: white; }
-        .qr-btn { background-color: #ffc107; color: black; }
-        .logout-btn { background-color: #dc3545; color: white; }
+        .balance-btn { 
+            background-color: #4361ee; 
+            color: white; 
+        }
+        
+        .transactions-btn { 
+            background-color: var(--primary-color); 
+            color: white; 
+        }
+        
+        .qr-btn { 
+            background-color: #ffc107; 
+            color: #343a40; 
+        }
+        
+        .logout-btn { 
+            background-color: #ef476f; 
+            color: white; 
+        }
 
         #output {
-            margin-top: 20px;
-            padding: 15px;
+            margin-top: 25px;
+            padding: 20px;
             background: #f8f9fa;
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 12px;
+            font-size: 15px;
             text-align: center;
             display: none;
+            border: 1px solid #e9ecef;
         }
 
         #qr_code {
-            margin-top: 10px;
-            width: 150px;
-            display: none;
+            margin: 15px auto;
+            width: 180px;
+            border-radius: 10px;
+            padding: 10px;
+            background: white;
+            border: 1px solid #e9ecef;
         }
 
-        .loading { font-style: italic; color: #888; }
+        .loading { 
+            font-style: italic; 
+            color: #6c757d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading:before {
+            content: "";
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border: 3px solid #ccc;
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 10px;
+            margin-top: 15px;
+            font-size: 14px;
         }
 
         th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
+            border: 1px solid #dee2e6;
+            padding: 10px;
             text-align: center;
         }
 
-        th { background-color: #007bff; color: white; }
+        th { 
+            background-color: var(--primary-color); 
+            color: white; 
+            font-weight: 500;
+        }
+        
+        td {
+            background-color: white;
+        }
+        
+        .dashboard-icon {
+            font-size: 28px;
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .button i {
+            margin-right: 8px;
+        }
+        
+        .amount-value {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-top: 5px;
+        }
     </style>
     <script>
-
         function checkBalance() {
             let outputDiv = document.getElementById("output");
             outputDiv.style.display = "block";
             outputDiv.innerHTML = "<span class='loading'>Fetching balance...</span>";
             
             fetch("/check_balance").then(response => response.json()).then(data => {
-                outputDiv.innerHTML = `<strong>Current Balance:</strong> ₹${data.balance}`;
+                outputDiv.innerHTML = `<div>
+                    <strong>Current Balance</strong>
+                    <div class="amount-value">₹${data.balance}</div>
+                </div>`;
             }).catch(() => {
-                outputDiv.innerHTML = "<strong>Error:</strong> Could not fetch balance.";
+                outputDiv.innerHTML = "<strong class='text-danger'><i class='fas fa-exclamation-circle me-2'></i>Error:</strong> Could not fetch balance.";
             });
         }
 
@@ -107,21 +196,35 @@
             
             fetch("/show_transactions").then(response => response.json()).then(data => {
                 if (data.transactions.length === 0) {
-                    outputDiv.innerHTML = "<strong>No transactions found.</strong>";
+                    outputDiv.innerHTML = "<div><i class='fas fa-receipt fa-2x mb-3 text-muted'></i><p><strong>No transactions found.</strong></p></div>";
                 } else {
-                    let tableHTML = `<table><tr><th>ID</th><th>Amount</th><th>Type</th><th>Date</th></tr>`;
+                    let tableHTML = `<table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                    
                     data.transactions.forEach(tx => {
-                        tableHTML += `<tr><td>${tx.id}</td><td>₹${tx.amount}</td><td>${tx.type}</td><td>${tx.date}</td></tr>`;
+                        tableHTML += `<tr>
+                            <td>${tx.id}</td>
+                            <td>₹${tx.amount}</td>
+                            <td>${tx.type}</td>
+                            <td>${tx.date}</td>
+                        </tr>`;
                     });
-                    tableHTML += "</table>";
-                    outputDiv.innerHTML = tableHTML;
+                    
+                    tableHTML += "</tbody></table>";
+                    outputDiv.innerHTML = "<h5 class='mb-3'>Transaction History</h5>" + tableHTML;
                 }
             }).catch(() => {
-                outputDiv.innerHTML = "<strong>Error:</strong> Could not fetch transactions.";
+                outputDiv.innerHTML = "<strong class='text-danger'><i class='fas fa-exclamation-circle me-2'></i>Error:</strong> Could not fetch transactions.";
             });
         }
-
-       
 
         function logout() {
             fetch("/logout", { method: "POST" }).then(() => {
@@ -132,20 +235,66 @@
                 console.error("Error logging out");
             });
         }
+        
+        // Load VMID when page loads
+        window.onload = function() {
+            // If you're using template rendering from backend,
+            // this might already be populated from {{ vmid }}
+            // Otherwise, fetch it from an API endpoint
+            const vmidElement = document.getElementById("vmid");
+            if (vmidElement.textContent === "Loading VMID...") {
+                // Try to fetch from localStorage first
+                const storedVmid = localStorage.getItem("vmid");
+                if (storedVmid) {
+                    vmidElement.textContent = `Your VID: ${storedVmid}`;
+                }
+                
+                // Optionally fetch from server if needed
+                fetch("/get_vmid").then(response => response.json())
+                .then(data => {
+                    if (data.vmid) {
+                        vmidElement.textContent = `Your VID: ${data.vmid}`;
+                        localStorage.setItem("vmid", data.vmid);
+                    }
+                }).catch(() => {
+                    // Keep the existing text if fetch fails
+                });
+            }
+            
+            // Show QR code if available
+            const qrCode = document.getElementById("qr_code");
+            const storedQR = localStorage.getItem("qr_code");
+            if (storedQR) {
+                qrCode.src = storedQR;
+                qrCode.style.display = "block";
+            }
+        }
     </script>
 </head>
 <body>
     <div class="container">
+        <div class="dashboard-icon">
+            <i class="fas fa-store"></i>
+        </div>
         <h1>Welcome, {{ name }}!</h1>
         <p id="vmid">Loading VMID...</p>
         <img id="qr_code" src="" alt="QR Code will appear here">
 
-        <button class="button balance-btn" onclick="checkBalance()">Check Balance</button>
-        <button class="button transactions-btn" onclick="showTransactions()">Show Transactions</button>
-        <button class="button qr-btn" onclick="window.location.href='/qr_page'">Generate QR Code</button>
-        <button class="button logout-btn" onclick="logout()">Logout</button>
+        <button class="button balance-btn" onclick="checkBalance()">
+            <i class="fas fa-wallet"></i> Check Balance
+        </button>
+        <button class="button transactions-btn" onclick="showTransactions()">
+            <i class="fas fa-exchange-alt"></i> Show Transactions
+        </button>
+        <button class="button qr-btn" onclick="window.location.href='/qr_page'">
+            <i class="fas fa-qrcode"></i> Generate QR Code
+        </button>
+        <button class="button logout-btn" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
 
         <div id="output"></div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

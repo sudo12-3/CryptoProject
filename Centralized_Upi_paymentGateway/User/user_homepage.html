@@ -1,154 +1,266 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>User Dashboard</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Payment Gateway - User Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3f37c9;
+            --accent-color: #4cc9f0;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
+            background-color: var(--light-color);
+            padding-top: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
+        
         .container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            text-align: center;
-            width: 400px;
+            max-width: 900px;
         }
-
-        h1 {
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        #user_id {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 20px;
-        }
-
-        .button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
+        
+        .card {
+            margin-bottom: 25px;
+            border-radius: 15px;
             border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: 0.3s;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
         }
-
-        .button:hover {
-            opacity: 0.8;
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
         }
-
-        .balance-btn { background-color: #007bff; color: white; }
-        .transactions-btn { background-color: #28a745; color: white; }
-        .pay-btn { background-color: #ffc107; color: black; }
-        .logout-btn { background-color: #dc3545; color: white; }
-
-        #output {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
+        
+        .card-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            font-weight: 600;
+            padding: 15px 20px;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border: none;
+            padding: 10px 20px;
             border-radius: 8px;
-            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background-color: #ef476f;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+        
+        .btn-danger:hover {
+            background-color: #e63e6d;
+            transform: translateY(-2px);
+        }
+        
+        .mmid-display {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
             text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(0,0,0,0.05);
+        }
+        
+        .mmid-display::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, rgba(67, 97, 238, 0.1), transparent, rgba(76, 201, 240, 0.1));
+            transform: rotate(45deg);
+            z-index: 0;
+        }
+        
+        #mmid {
+            background-color: white;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 0 5px;
+            font-family: monospace;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+            color: var(--primary-color);
+        }
+        
+        .header-container {
+            position: relative;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .header-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-color), var(--primary-color));
+            border-radius: 3px;
+        }
+        
+        .icon-container {
+            margin-right: 10px;
+            display: inline-block;
+            width: 30px;
+            text-align: center;
+        }
+        
+        .balance-amount {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--primary-color);
+        }
+        
+        .refresh-icon {
+            animation: spin 1s linear infinite;
             display: none;
         }
-
-        .loading { font-style: italic; color: #888; }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
+        
+        .btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
-
-        th { background-color: #007bff; color: white; }
     </style>
-    <script>
-
-        function checkBalance() {
-            let outputDiv = document.getElementById("output");
-            outputDiv.style.display = "block";
-            outputDiv.innerHTML = "<span class='loading'>Fetching balance...</span>";
-        
-            fetch("/check_balance")
-                .then(response => response.json())
-                .then(data => {
-                    if (data.balance !== undefined) {
-                        outputDiv.innerHTML = `<strong>Your Balance:</strong> ₹${data.balance}`;
-                    } else {
-                        console.error("Unexpected response:", data);
-                        outputDiv.innerHTML = "<strong>Error:</strong> Balance data not found.";
-                    }
-                })
-                .catch(error => {
-                    console.error("Fetch error:", error);
-                    outputDiv.innerHTML = "<strong>Error:</strong> Could not fetch balance.";
-                });
-        }
-        
-        function showTransactions() {
-            let outputDiv = document.getElementById("output");
-            outputDiv.style.display = "block";
-            outputDiv.innerHTML = "<span class='loading'>Fetching transactions...</span>";
-            
-            fetch("/user_transactions").then(response => response.json()).then(data => {
-                if (data.transactions.length === 0) {
-                    outputDiv.innerHTML = "<strong>No transactions found.</strong>";
-                } else {
-                    let tableHTML = `<table><tr><th>ID</th><th>Amount</th><th>Type</th><th>Date</th></tr>`;
-                    data.transactions.forEach(tx => {
-                        tableHTML += `<tr><td>${tx.id}</td><td>₹${tx.amount}</td><td>${tx.type}</td><td>${tx.date}</td></tr>`;
-                    });
-                    tableHTML += "</table>";
-                    outputDiv.innerHTML = tableHTML;
-                }
-            }).catch(() => {
-                outputDiv.innerHTML = "<strong>Error:</strong> Could not fetch transactions.";
-            });
-        }
-
-        function makePayment() {
-            window.location.href = "/make_payment"; 
-        }
-
-        function logout() {
-            fetch("/logout", { method: "POST" }).then(() => {
-                localStorage.removeItem("user_id");
-                window.location.href = "/"; 
-            }).catch(() => {
-                console.error("Error logging out");
-            });
-        }
-    </script>
 </head>
 <body>
     <div class="container">
-        <h1>Welcome, {{ username }}!</h1>
-        <p id="user_id">User ID: Loading...</p>
+        <div class="header-container">
+            <h1 class="text-center mb-2">Welcome, {{ username }}!</h1>
+            <p class="text-center text-muted">Your secure payment dashboard</p>
+        </div>
+        
+        <div class="mmid-display">
+            <p class="mb-2">Your Mobile Money Identifier</p>
+            <span id="mmid">{{ mmid }}</span>
+            <button class="btn btn-sm btn-secondary ms-2" onclick="copyMMID()" title="Copy to clipboard">
+                <i class="fas fa-copy"></i>
+            </button>
+        </div>
 
-        <button class="button balance-btn" onclick="checkBalance()">Check Balance</button>
-        <button class="button transactions-btn" onclick="showTransactions()">Show Transactions</button>
-        <button class="button pay-btn" onclick="makePayment()">Make Payment</button>
-        <button class="button logout-btn" onclick="logout()">Logout</button>
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-wallet icon-container"></i> Balance
+            </div>
+            <div class="card-body text-center">
+                <h5 class="card-title">Current Balance</h5>
+                <p class="card-text balance-amount" id="balance">Loading...</p>
+                <i class="fas fa-sync refresh-icon" id="refreshIcon"></i>
+                <button class="btn btn-primary mt-3" onclick="checkBalance()">
+                    <i class="fas fa-sync-alt"></i> Refresh Balance
+                </button>
+            </div>
+        </div>
 
-        <div id="output"></div>
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-tasks icon-container"></i> Actions
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-3">
+                    <a href="/make_payment" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i> Make Payment
+                    </a>
+                    <a href="/transaction_history" class="btn btn-outline-secondary">
+                        <i class="fas fa-history"></i> Transaction History
+                    </a>
+                    <a href="/logout" class="btn btn-danger">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        // Function to check balance
+        function checkBalance() {
+            document.getElementById('balance').textContent = 'Refreshing...';
+            document.getElementById('refreshIcon').style.display = 'inline-block';
+            
+            fetch('/check_balance', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('refreshIcon').style.display = 'none';
+                if (data.error) {
+                    document.getElementById('balance').textContent = 'Error: ' + data.error;
+                } else {
+                    document.getElementById('balance').textContent = '₹' + parseFloat(data.balance).toLocaleString('en-IN', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                }
+            })
+            .catch(error => {
+                document.getElementById('refreshIcon').style.display = 'none';
+                console.error('Error:', error);
+                document.getElementById('balance').textContent = 'Error fetching balance';
+            });
+        }
+
+        // Copy MMID to clipboard
+        function copyMMID() {
+            const mmidText = document.getElementById('mmid').textContent;
+            navigator.clipboard.writeText(mmidText).then(() => {
+                const copyBtn = document.querySelector('.btn-secondary');
+                copyBtn.innerHTML = '<i class="fas fa-check"></i>';
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                }, 2000);
+            });
+        }
+
+        // Check balance on page load
+        window.onload = function() {
+            checkBalance();
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

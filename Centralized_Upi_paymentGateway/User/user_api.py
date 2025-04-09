@@ -145,7 +145,9 @@ def home():
 @app.route('/homepage')
 def homepage():
     if 'username' in session:
-        return render_template('user_homepage.html', username=session['username'])
+        return render_template('user_homepage.html', 
+                               username=session['username'],
+                               mmid=session.get('mmid', 'Not available'))
     else:
         return redirect(url_for('home'))
 
@@ -230,13 +232,15 @@ def user_login():
     password_hash = hashlib.sha256(password.encode()).hexdigest()
     
     if use_mysql:
-        sql = "SELECT uid FROM users WHERE username = %s AND password_hash = %s"
+        sql = "SELECT uid, mmid FROM users WHERE username = %s AND password_hash = %s"
         cursor.execute(sql, (username, password_hash))
         result = cursor.fetchone()
 
         if result:
-            session['username'] = username  
-            return jsonify({"success": True, "message": "Login successful!", "uid": result[0]})
+            session['username'] = username
+            session['uid'] = result[0]
+            session['mmid'] = result[1]  # Store MMID in session
+            return jsonify({"success": True, "message": "Login successful!", "uid": result[0], "mmid": result[1]})
         else:
             return jsonify({"error": "Invalid credentials"}), 401
     else:
@@ -247,11 +251,14 @@ def user_login():
         if result:
             user_data = result[0].to_dict()
             uid = user_data.get('uid')
+            mmid = user_data.get('mmid')
             session['username'] = username
-            return jsonify({"success": True, "message": "Login successful!", "uid": uid})
+            session['uid'] = uid
+            session['mmid'] = mmid  # Store MMID in session
+            return jsonify({"success": True, "message": "Login successful!", "uid": uid, "mmid": mmid})
         else:
             return jsonify({"error": "Invalid credentials"}), 401
-    
+
 @app.route("/check_balance", methods=["GET"])
 def check_balance():
     print("Session Data:", session)  # Debug session storage
@@ -286,7 +293,7 @@ def check_balance():
 @app.route('/make_payment', methods=['GET'])
 def show_payment_page():
     if 'username' in session:
-        return render_template('payment.html')
+        return render_template('payment.html', mmid=session.get('mmid', 'Not available'))
     else:
         return redirect(url_for('home'))
 
@@ -316,7 +323,7 @@ def process_payment():
     else:
         # Using Firebase
         try:
-            # Get user details
+            # Get user details from MMID
             users_ref = db.collection('users')
             user_query = users_ref.where('mmid', '==', mmid).limit(1).get()
             user_result = list(user_query)
@@ -328,6 +335,13 @@ def process_payment():
             user_balance = user_data.get('balance', 0)
             user_id = user_result[0].id
             
+            # *** PIN VERIFICATION - Added this crucial security check ***
+            pin_hash = hashlib.sha256(pin.encode()).hexdigest()
+            stored_pin_hash = user_data.get('pin_hash', '')
+            
+            if pin_hash != stored_pin_hash:
+                return jsonify({"error": "Invalid PIN"}), 401
+            
             # Get user's bank
             user_bank = user_data.get('bank', 'HDFC')  # Default to HDFC if not specified
             
@@ -337,13 +351,12 @@ def process_payment():
             # Get merchant details
             merchants_ref = db.collection('merchants')
             merchant_query = merchants_ref.where('mid', '==', mid_hex).limit(1).get()
-            merchant_result = list(merchant_query)
             
-            if not merchant_result:
+            if not merchant_query:
                 return jsonify({"error": "Merchant not found"}), 404
             
-            merchant_data = merchant_result[0].to_dict()
-            merchant_id = merchant_result[0].id
+            merchant_data = merchant_query[0].to_dict()
+            merchant_id = merchant_query[0].id
             
             # Begin transaction
             transaction = db.transaction()

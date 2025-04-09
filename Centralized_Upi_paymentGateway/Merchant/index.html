@@ -4,73 +4,250 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Merchant Portal</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; }
-        .container { width: 300px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
-        input { width: 100%; padding: 10px; margin: 5px 0; }
-        button { width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; }
-        .hidden { display: none; }
+        :root {
+            --primary-color: #38b000;
+            --secondary-color: #008000;
+            --accent-color: #70e000;
+            --light-color: #f8f9fa;
+            --dark-color: #212529;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 25px;
+            font-weight: 600;
+        }
+        
+        .container {
+            width: 400px;
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .main-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .main-buttons button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .main-buttons button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        button.register-btn {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        button.login-btn {
+            background-color: #4361ee;
+            color: white;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, select:focus {
+            border-color: var(--primary-color);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(56, 176, 0, 0.2);
+        }
+        
+        button[onclick="registerMerchant()"], 
+        button[onclick="loginMerchant()"] {
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button[onclick="registerMerchant()"]:hover, 
+        button[onclick="loginMerchant()"]:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        p#registerMessage, 
+        p#loginMessage {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        p#registerMessage:not(:empty), 
+        p#loginMessage:not(:empty) {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+        }
+        
+        .merchant-icon {
+            font-size: 40px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: var(--dark-color);
+        }
+        
+        label {
+            display: block;
+            text-align: left;
+            margin-top: 12px;
+            margin-bottom: 5px;
+            color: #495057;
+            font-weight: 500;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
     </style>
 </head>
 <body>
-
     <h1>Merchant Portal</h1>
     <div class="container">
-        <button onclick="showForm('register')">Register</button>
-        <button onclick="showForm('login')">Login</button>
+        <div class="merchant-icon">
+            <i class="fas fa-store"></i>
+        </div>
+        <div class="main-buttons">
+            <button class="register-btn" onclick="showForm('register')">
+                <i class="fas fa-user-plus me-2"></i>Register
+            </button>
+            <button class="login-btn" onclick="showForm('login')">
+                <i class="fas fa-sign-in-alt me-2"></i>Login
+            </button>
+        </div>
     </div>
 
     <!-- Registration Form -->
     <div class="container hidden" id="registerForm">
-        <h2>Register</h2>
-        <input type="text" id="reg_name" placeholder="Merchant Name" required>
-        <input type="password" id="reg_password" placeholder="Password" required>
-        <input type="number" id="reg_balance" placeholder="Initial Balance" required>
-        <label for="reg_ifsc">IFSC Code:</label>
-        <select id="reg_ifsc" name="ifsc_code" required>
-            <option value="">-- Select Branch --</option>
-            <optgroup label="HDFC Bank">
+        <h2>Register as Merchant</h2>
+        <div class="form-group">
+            <input type="text" id="reg_name" placeholder="Merchant Name" required>
+        </div>
+        <div class="form-group">
+            <input type="password" id="reg_password" placeholder="Password" required>
+        </div>
+        <div class="form-group">
+            <input type="number" id="reg_balance" placeholder="Initial Balance" required>
+        </div>
+        <div class="form-group">
+            <label for="reg_ifsc">IFSC Code:</label>
+            <select id="reg_ifsc" name="ifsc_code" required>
+                <option value="">-- Select Branch --</option>
                 <option value="HDFC0001">HDFC0001</option>
                 <option value="HDFC0002">HDFC0002</option>
                 <option value="HDFC0003">HDFC0003</option>
-            </optgroup>
-            <optgroup label="ICICI Bank">
                 <option value="ICIC0001">ICIC0001</option>
                 <option value="ICIC0002">ICIC0002</option>
                 <option value="ICIC0003">ICIC0003</option>
-            </optgroup>
-            <optgroup label="State Bank of India">
                 <option value="SBIN0001">SBIN0001</option>
                 <option value="SBIN0002">SBIN0002</option>
                 <option value="SBIN0003">SBIN0003</option>
-            </optgroup>
-        </select>
-        <button onclick="registerMerchant()">Register</button>
+            </select>
+        </div>
+        <button onclick="registerMerchant()">
+            <i class="fas fa-user-plus me-2"></i>Register
+        </button>
         <p id="registerMessage"></p>
     </div>
 
     <!-- Login Form -->
     <div class="container hidden" id="loginForm">
-        <h2>Login</h2>
-        <input type="text" id="login_name" placeholder="Merchant Name" required>
-        <input type="password" id="login_password" placeholder="Password" required>
-        <button onclick="loginMerchant()">Login</button>
+        <h2>Merchant Login</h2>
+        <div class="form-group">
+            <input type="text" id="login_name" placeholder="Merchant Name" required>
+        </div>
+        <div class="form-group">
+            <input type="password" id="login_password" placeholder="Password" required>
+        </div>
+        <button onclick="loginMerchant()">
+            <i class="fas fa-sign-in-alt me-2"></i>Login
+        </button>
         <p id="loginMessage"></p>
     </div>
 
     <script>
         function showForm(formType) {
-            document.getElementById("registerForm").classList.add("hidden");
             document.getElementById("loginForm").classList.add("hidden");
+            document.getElementById("registerForm").classList.add("hidden");
             document.getElementById(formType + "Form").classList.remove("hidden");
         }
 
         function registerMerchant() {
+            const name = document.getElementById("reg_name").value;
+            const password = document.getElementById("reg_password").value;
+            const balance = document.getElementById("reg_balance").value;
+            const ifsc_code = document.getElementById("reg_ifsc").value;
+            
+            if (!name || !password || !balance || !ifsc_code) {
+                document.getElementById("registerMessage").innerText = "Please fill in all fields";
+                document.getElementById("registerMessage").style.color = "#dc3545";
+                return;
+            }
+            
+            document.getElementById("registerMessage").innerText = "Processing...";
+            document.getElementById("registerMessage").style.color = "#6c757d";
+            
             const data = {
-                name: document.getElementById("reg_name").value,
-                password: document.getElementById("reg_password").value,
-                balance: document.getElementById("reg_balance").value,
-                ifsc_code: document.getElementById("reg_ifsc").value
+                name: name,
+                password: password,
+                balance: balance,
+                ifsc_code: ifsc_code
             };
 
             fetch("http://127.0.0.1:5051/register_merchant", {
@@ -80,15 +257,46 @@
             })
             .then(response => response.json())
             .then(result => {
-                document.getElementById("registerMessage").innerText = result.message || result.error;
+                if (result.error) {
+                    document.getElementById("registerMessage").innerText = result.error;
+                    document.getElementById("registerMessage").style.color = "#dc3545";
+                } else {
+                    document.getElementById("registerMessage").innerText = result.message || "Registration successful!";
+                    document.getElementById("registerMessage").style.color = "#28a745";
+                    document.getElementById("reg_name").value = "";
+                    document.getElementById("reg_password").value = "";
+                    document.getElementById("reg_balance").value = "";
+                    document.getElementById("reg_ifsc").value = "";
+                    
+                    // Auto switch to login after successful registration
+                    setTimeout(() => {
+                        showForm('login');
+                    }, 3000);
+                }
             })
-            .catch(error => console.error("Error:", error));
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("registerMessage").innerText = "An error occurred. Please try again.";
+                document.getElementById("registerMessage").style.color = "#dc3545";
+            });
         }
 
         function loginMerchant() {
+            const name = document.getElementById("login_name").value;
+            const password = document.getElementById("login_password").value;
+            
+            if (!name || !password) {
+                document.getElementById("loginMessage").innerText = "Please enter username and password";
+                document.getElementById("loginMessage").style.color = "#dc3545";
+                return;
+            }
+            
+            document.getElementById("loginMessage").innerText = "Logging in...";
+            document.getElementById("loginMessage").style.color = "#6c757d";
+            
             const data = {
-                name: document.getElementById("login_name").value,
-                password: document.getElementById("login_password").value
+                name: name,
+                password: password
             };
         
             fetch("http://127.0.0.1:5051/login", {
@@ -99,16 +307,22 @@
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
+                    document.getElementById("loginMessage").innerText = "Login successful! Redirecting...";
+                    document.getElementById("loginMessage").style.color = "#28a745";
                     console.log("Login successful, redirecting...");
                     window.location.href = result.redirect_url;  
                 } else {
                     document.getElementById("loginMessage").innerText = result.error;
+                    document.getElementById("loginMessage").style.color = "#dc3545";
                 }
             })
-            .catch(error => console.error("Error:", error));
+            .catch(error => {
+                console.error("Error:", error);
+                document.getElementById("loginMessage").innerText = "An error occurred. Please try again.";
+                document.getElementById("loginMessage").style.color = "#dc3545";
+            });
         }
-        
     </script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
