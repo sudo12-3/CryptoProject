@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Merchants collection rules
+    match /merchants/{merchantId} {
+      allow read: if request.auth != null; 
+      allow write: if request.auth != null;
+    }
+    
+    // Users collection rules
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Blockchain blocks rules
+    match /blocks/{blockId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Blockchain collection rules
+    match /blockchains/{bankId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // MMID collection rules
+    match /mmids/{mmidId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // Transactions collection rules
+    match /transactions/{transactionId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+  }
+}

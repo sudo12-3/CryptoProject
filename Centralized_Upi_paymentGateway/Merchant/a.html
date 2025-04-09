@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Merchant Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 400px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        #vmid {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+
+        .button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .button:hover {
+            opacity: 0.8;
+        }
+
+        .balance-btn { background-color: #007bff; color: white; }
+        .transactions-btn { background-color: #28a745; color: white; }
+        .qr-btn { background-color: #ffc107; color: black; }
+        .logout-btn { background-color: #dc3545; color: white; }
+
+        #output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        #qr_code {
+            margin-top: 10px;
+            width: 150px;
+            display: none;
+        }
+
+        .loading { font-style: italic; color: #888; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th { background-color: #007bff; color: white; }
+    </style>
+    <script>
+
+        function checkBalance() {
+            let outputDiv = document.getElementById("output");
+            outputDiv.style.display = "block";
+            outputDiv.innerHTML = "<span class='loading'>Fetching balance...</span>";
+            
+            fetch("/check_balance").then(response => response.json()).then(data => {
+                outputDiv.innerHTML = `<strong>Current Balance:</strong> ₹${data.balance}`;
+            }).catch(() => {
+                outputDiv.innerHTML = "<strong>Error:</strong> Could not fetch balance.";
+            });
+        }
+
+        function showTransactions() {
+            let outputDiv = document.getElementById("output");
+            outputDiv.style.display = "block";
+            outputDiv.innerHTML = "<span class='loading'>Fetching transactions...</span>";
+            
+            fetch("/show_transactions").then(response => response.json()).then(data => {
+                if (data.transactions.length === 0) {
+                    outputDiv.innerHTML = "<strong>No transactions found.</strong>";
+                } else {
+                    let tableHTML = `<table><tr><th>ID</th><th>Amount</th><th>Type</th><th>Date</th></tr>`;
+                    data.transactions.forEach(tx => {
+                        tableHTML += `<tr><td>${tx.id}</td><td>₹${tx.amount}</td><td>${tx.type}</td><td>${tx.date}</td></tr>`;
+                    });
+                    tableHTML += "</table>";
+                    outputDiv.innerHTML = tableHTML;
+                }
+            }).catch(() => {
+                outputDiv.innerHTML = "<strong>Error:</strong> Could not fetch transactions.";
+            });
+        }
+
+       
+
+        function logout() {
+            fetch("/logout", { method: "POST" }).then(() => {
+                localStorage.removeItem("vmid");
+                localStorage.removeItem("qr_code");
+                window.location.href = "/";
+            }).catch(() => {
+                console.error("Error logging out");
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome, {{ name }}!</h1>
+        <p id="vmid">Loading VMID...</p>
+        <img id="qr_code" src="" alt="QR Code will appear here">
+
+        <button class="button balance-btn" onclick="checkBalance()">Check Balance</button>
+        <button class="button transactions-btn" onclick="showTransactions()">Show Transactions</button>
+        <button class="button qr-btn" onclick="window.location.href='/qr_page'">Generate QR Code</button>
+        <button class="button logout-btn" onclick="logout()">Logout</button>
+
+        <div id="output"></div>
+    </div>
+</body>
+</html>

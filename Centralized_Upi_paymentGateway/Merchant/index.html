@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Merchant Portal</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; }
+        .container { width: 300px; margin: auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; }
+        input { width: 100%; padding: 10px; margin: 5px 0; }
+        button { width: 100%; padding: 10px; margin-top: 10px; cursor: pointer; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+    <h1>Merchant Portal</h1>
+    <div class="container">
+        <button onclick="showForm('register')">Register</button>
+        <button onclick="showForm('login')">Login</button>
+    </div>
+
+    <!-- Registration Form -->
+    <div class="container hidden" id="registerForm">
+        <h2>Register</h2>
+        <input type="text" id="reg_name" placeholder="Merchant Name" required>
+        <input type="password" id="reg_password" placeholder="Password" required>
+        <input type="number" id="reg_balance" placeholder="Initial Balance" required>
+        <input type="text" id="reg_ifsc" placeholder="IFSC Code" required>
+        <button onclick="registerMerchant()">Register</button>
+        <p id="registerMessage"></p>
+    </div>
+
+    <!-- Login Form -->
+    <div class="container hidden" id="loginForm">
+        <h2>Login</h2>
+        <input type="text" id="login_name" placeholder="Merchant Name" required>
+        <input type="password" id="login_password" placeholder="Password" required>
+        <button onclick="loginMerchant()">Login</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <script>
+        function showForm(formType) {
+            document.getElementById("registerForm").classList.add("hidden");
+            document.getElementById("loginForm").classList.add("hidden");
+            document.getElementById(formType + "Form").classList.remove("hidden");
+        }
+
+        function registerMerchant() {
+            const data = {
+                name: document.getElementById("reg_name").value,
+                password: document.getElementById("reg_password").value,
+                balance: document.getElementById("reg_balance").value,
+                ifsc_code: document.getElementById("reg_ifsc").value
+            };
+
+            fetch("http://127.0.0.1:5001/register_merchant", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                document.getElementById("registerMessage").innerText = result.message || result.error;
+            })
+            .catch(error => console.error("Error:", error));
+        }
+
+        function loginMerchant() {
+            const data = {
+                name: document.getElementById("login_name").value,
+                password: document.getElementById("login_password").value
+            };
+        
+            fetch("http://127.0.0.1:5001/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    console.log("Login successful, redirecting...");
+                    window.location.href = result.redirect_url;  
+                } else {
+                    document.getElementById("loginMessage").innerText = result.error;
+                }
+            })
+            .catch(error => console.error("Error:", error));
+        }
+        
+    </script>
+
+</body>
+</html>
