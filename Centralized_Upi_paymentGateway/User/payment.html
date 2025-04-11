@@ -258,6 +258,11 @@
             payButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
             payButton.disabled = true;
             
+            // Show processing message
+            document.getElementById('successMessage').textContent = "Payment request sent to UPI Machine. Processing...";
+            document.getElementById('successAlert').style.display = 'block';
+            document.getElementById('errorAlert').style.display = 'none';
+            
             // Send payment data to server
             fetch('/process_payment', {
                 method: 'POST',
@@ -273,25 +278,17 @@
             })
             .then(response => response.json())
             .then(data => {
-                payButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Make Payment';
-                payButton.disabled = false;
-                
                 if (data.error) {
+                    payButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Make Payment';
+                    payButton.disabled = false;
                     showError(data.error);
+                } else if (data.status === "processing") {
+                    // Payment is being processed, start polling for status
+                    const transactionId = data.transaction_id;
+                    pollTransactionStatus(transactionId);
                 } else {
-                    document.getElementById('successMessage').textContent = data.message;
-                    document.getElementById('successAlert').style.display = 'block';
-                    document.getElementById('errorAlert').style.display = 'none';
-                    
-                    // Reset form (except MMID which should remain)
-                    document.getElementById('pin').value = '';
-                    document.getElementById('amount').value = '';
-                    document.getElementById('vid').value = '';
-                    
-                    // Redirect to homepage after success
-                    setTimeout(() => {
-                        window.location.href = '/homepage';
-                    }, 2000);
+                    // Handle immediate result (rarely happens)
+                    handlePaymentResult(data);
                 }
             })
             .catch(error => {
@@ -301,6 +298,79 @@
                 console.error('Error:', error);
             });
         });
+        
+        function pollTransactionStatus(transactionId) {
+            let attempts = 0;
+            const maxAttempts = 20;
+            
+            document.getElementById('successMessage').textContent = "Payment is being processed by UPI Machine... Please wait.";
+            
+            const interval = setInterval(() => {
+                attempts++;
+                
+                fetch(`/check_transaction_status/${transactionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        console.log("Status update:", data);
+                        
+                        if (data.status === "success") {
+                            clearInterval(interval);
+                            handlePaymentSuccess(data);
+                        } 
+                        else if (data.status === "failed") {
+                            clearInterval(interval);
+                            handlePaymentFailure(data);
+                        }
+                        else {
+                            // Update the message to show we're still processing
+                            document.getElementById('successMessage').textContent = 
+                                `Payment processing (${attempts}/${maxAttempts})... ${data.message || ""}`;
+                        }
+                        
+                        // Stop polling after max attempts
+                        if (attempts >= maxAttempts) {
+                            clearInterval(interval);
+                            const payButton = document.getElementById('payButton');
+                            payButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Make Payment';
+                            payButton.disabled = false;
+                            showError("Payment is taking longer than expected. Please check your account for status.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error polling for status:', error);
+                    });
+            }, 2000); // Poll every 2 seconds
+        }
+        
+        function handlePaymentSuccess(data) {
+            const payButton = document.getElementById('payButton');
+            payButton.innerHTML = '<i class="fas fa-check-circle me-2"></i> Payment Complete';
+            payButton.disabled = true;
+            payButton.classList.remove('btn-primary');
+            payButton.classList.add('btn-success');
+            
+            document.getElementById('successMessage').textContent = data.message || "Payment processed successfully!";
+            document.getElementById('successAlert').style.display = 'block';
+            document.getElementById('errorAlert').style.display = 'none';
+            
+            // Reset form (except MMID which should remain)
+            document.getElementById('pin').value = '';
+            document.getElementById('amount').value = '';
+            document.getElementById('vid').value = '';
+            
+            // Redirect to homepage after success
+            setTimeout(() => {
+                window.location.href = '/homepage';
+            }, 3000);
+        }
+        
+        function handlePaymentFailure(data) {
+            const payButton = document.getElementById('payButton');
+            payButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i> Make Payment';
+            payButton.disabled = false;
+            
+            showError(data.message || "Payment failed. Please try again.");
+        }
         
         function showError(message) {
             document.getElementById('errorMessage').textContent = message;

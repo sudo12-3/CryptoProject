@@ -24,6 +24,9 @@ MERCHANT_PORT = 5051
 USER_PORT = 5052
 BANK_PORT = 5053
 
+# Add UPI Machine configuration
+UPI_MACHINE_HOST = "172.20.31.42"  # Replace with actual IP
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -58,8 +61,12 @@ if __name__ == '__main__':
 
     def run_user_app():
         print(f"Starting user app on port {USER_PORT}...")
-        subprocess.Popen([sys.executable, 'User/user_api.py', '--port', str(USER_PORT)], 
-                       cwd=os.path.dirname(os.path.abspath(__file__)))
+        subprocess.Popen([
+            sys.executable, 
+            'User/user_api.py', 
+            '--port', str(USER_PORT),
+            '--upi-host', UPI_MACHINE_HOST
+        ], cwd=os.path.dirname(os.path.abspath(__file__)))
 
     def run_bank_app():
         print(f"Starting bank app on port {BANK_PORT}...")

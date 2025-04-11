@@ -31,6 +31,13 @@ if os.environ.get('USE_FIREBASE_ONLY') != 'True':
 from firebase_config import db
 from firebase_admin import firestore
 
+# Add these imports at the top
+import sys
+import uuid
+sys.path.append('..')  # Add parent directory to path
+from upi_machine_client import UPIMachineClient
+import threading
+
 app = Flask(__name__)
 CORS(app)
 app.secret_key = "your_secret_key"  # Required for session handling
@@ -137,6 +144,33 @@ def generate_uid(username, password):
 def generate_mmid(uid, mobile_number):
     mmid = hashlib.sha256((uid + mobile_number).encode()).hexdigest()[:16]
     return mmid.upper()
+
+# Add a global UPI machine client
+upi_client = UPIMachineClient("UPI_MACHINE_IP_ADDRESS")  # Replace with actual IP
+
+# Store transaction statuses
+transaction_statuses = {}
+
+# Add a function to initialize UPI Machine connection
+def init_upi_connection():
+    if upi_client.connect():
+        app.logger.info("Connected to UPI Machine")
+        
+        # Register callback for transaction results
+        upi_client.register_callback("transaction_result", handle_transaction_result)
+    else:
+        app.logger.error("Failed to connect to UPI Machine")
+
+# Add a callback handler for transaction results
+def handle_transaction_result(message):
+    app.logger.info(f"Received transaction result from UPI Machine: {message}")
+    result_data = message.get('data', {})
+    
+    # Update transaction status for retrieval by frontend
+    if 'transaction_id' in result_data:
+        transaction_id = result_data['transaction_id']
+        transaction_statuses[transaction_id] = result_data
+        app.logger.info(f"Updated status for transaction {transaction_id}")
 
 @app.route('/')
 def home():
@@ -299,119 +333,61 @@ def show_payment_page():
 
 @app.route('/process_payment', methods=['POST'])
 def process_payment():
-    data = request.json  
+    if 'username' not in session:
+        return jsonify({"error": "Not logged in"}), 401
+    
+    data = request.json
     mmid = data.get('receiver_mmid')
     amount = data.get('amount')
     pin = data.get('pin')
     vid = data.get('vid')
-
-    if not all([mmid, amount, pin]):
+    
+    if not all([mmid, amount, pin, vid]):
         return jsonify({"error": "Missing required fields"}), 400
     
+    # Generate a transaction ID
+    transaction_id = str(uuid.uuid4())
+    
+    # Prepare transaction data
+    transaction_data = {
+        'mmid': mmid,
+        'amount': amount,
+        'pin': pin,
+        'vid': vid,
+        'transaction_id': transaction_id
+    }
+    
+    # Send transaction to UPI Machine
     try:
-        vid_int = int(vid, 16)
-        mid = cipher.decrypt(vid_int)
-        mid_hex = hex(mid)[2:].upper()
-        print(f"Decrypted MID (hex): {mid_hex}")
-        amount_int = int(amount)
+        success, result = upi_client.process_transaction(transaction_data)
+        
+        if success:
+            # Store the transaction ID manually
+            transaction_statuses[transaction_id] = {"status": "processing", "message": "Payment request sent to UPI Machine"}
+            
+            return jsonify({
+                "status": "processing",
+                "message": "Payment request sent to UPI Machine",
+                "transaction_id": transaction_id
+            })
+        else:
+            return jsonify({
+                "status": "failed",
+                "message": f"Failed to send payment to UPI Machine: {result}"
+            }), 500
     except Exception as e:
-        return jsonify({"error": f"Error processing payment data: {str(e)}"}), 400
+        app.logger.error(f"Error processing payment: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/check_transaction_status/<transaction_id>', methods=['GET'])
+def check_transaction_status(transaction_id):
+    """Check the status of a transaction by its ID"""
+    if 'username' not in session:
+        return jsonify({"error": "Not logged in"}), 401
     
-    if use_mysql:
-        # MySQL implementation remains similar
-        pass
-    else:
-        # Using Firebase
-        try:
-            # Get user details from MMID
-            users_ref = db.collection('users')
-            user_query = users_ref.where('mmid', '==', mmid).limit(1).get()
-            user_result = list(user_query)
-            
-            if not user_result:
-                return jsonify({"error": "User not found"}), 404
-                
-            user_data = user_result[0].to_dict()
-            user_balance = user_data.get('balance', 0)
-            user_id = user_result[0].id
-            
-            # *** PIN VERIFICATION - Added this crucial security check ***
-            pin_hash = hashlib.sha256(pin.encode()).hexdigest()
-            stored_pin_hash = user_data.get('pin_hash', '')
-            
-            if pin_hash != stored_pin_hash:
-                return jsonify({"error": "Invalid PIN"}), 401
-            
-            # Get user's bank
-            user_bank = user_data.get('bank', 'HDFC')  # Default to HDFC if not specified
-            
-            if user_balance < amount_int:
-                return jsonify({"error": "Insufficient balance"}), 400
-                
-            # Get merchant details
-            merchants_ref = db.collection('merchants')
-            merchant_query = merchants_ref.where('mid', '==', mid_hex).limit(1).get()
-            
-            if not merchant_query:
-                return jsonify({"error": "Merchant not found"}), 404
-            
-            merchant_data = merchant_query[0].to_dict()
-            merchant_id = merchant_query[0].id
-            
-            # Begin transaction
-            transaction = db.transaction()
-            
-            @firestore.transactional
-            def update_balances(transaction, user_ref, merchant_ref, amount):
-                # Update user balance
-                transaction.update(user_ref, {
-                    'balance': firestore.Increment(-float(amount))
-                })
-                
-                # Update merchant balance
-                transaction.update(merchant_ref, {
-                    'account_balance': firestore.Increment(float(amount))
-                })
-                
-                return True
-            
-            user_ref = users_ref.document(user_id)
-            merchant_ref = merchants_ref.document(merchant_id)
-            
-            success = update_balances(transaction, user_ref, merchant_ref, amount_int)
-            
-            if success:
-                # Record transaction in the appropriate blockchain
-                sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-                from blockchan import Blockchain
-                blockchain = Blockchain(user_bank)
-                blockchain.add_block({
-                    'user_id': user_id,
-                    'merchant_id': mid_hex,
-                    'amount': amount_int,
-                    'timestamp': datetime.now().timestamp(),
-                    'type': 'payment',
-                    'status': 'completed'
-                })
-                
-                # Record transaction in Firestore
-                transaction_ref = db.collection('transactions').document()
-                transaction_ref.set({
-                    'user_id': user_id,
-                    'merchant_id': mid_hex,
-                    'amount': amount_int,
-                    'bank': user_bank,
-                    'timestamp': firestore.SERVER_TIMESTAMP,
-                    'type': 'payment',
-                    'status': 'completed'
-                })
-                
-                return jsonify({"message": "Payment processed successfully!"})
-            else:
-                return jsonify({"error": "Transaction failed"}), 500
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    
+    status = transaction_statuses.get(transaction_id, {"status": "unknown", "message": "Transaction not found"})
+    return jsonify(status)
+
 @app.route('/logout')
 def logout():
     session.pop('username', None)
@@ -421,7 +397,14 @@ if __name__ == '__main__':
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='User API')
     parser.add_argument('--port', type=int, default=5052, help='Port to run the server on')
+    parser.add_argument('--upi-host', type=str, default='localhost')
     args = parser.parse_args()
+    
+    # Update UPI Machine host
+    upi_client.host = args.upi_host
+    
+    # Start UPI connection in background thread
+    threading.Thread(target=init_upi_connection, daemon=True).start()
     
     print(f"Starting user app on port {args.port}...")
     app.run(host='0.0.0.0', port=args.port, debug=True, use_reloader=False)
