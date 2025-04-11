@@ -1,6 +1,12 @@
 
 # Centralized UPI Payment Gateway with Quantum Security Analysis
 
+## Team Members
+1. Sriharish Ravichandran - 2022A7PS0511H
+2. Parth Mehta - 2022A7PS0043H
+3. Anand Srinivasan - 2022A7PS2017H
+4. Sagar Thomas - 2022A7PS0156H
+
 ## Project Overview
 The system implements a centralized UPI payment gateway with the following key features:
 - Real-time transaction processing using SpeckCipher for lightweight cryptography
@@ -81,12 +87,6 @@ Run the test suite:
 bash
 pytest tests/
 
-
-## Team Members
-1. Sriharish Ravichandran - 2022A7PS0511H
-2. Parth Mehta - 2022A7PS0043H
-3. Anand Srinivasan - 2022A7PS2017H
-4. Sagar Thomas - 2022A7PS0156H
 
 ## Requirements
 - Python 3.8+
